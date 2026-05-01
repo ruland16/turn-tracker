@@ -1,0 +1,23 @@
+{
+  "name": "turn-tracker",
+  "version": "1.0.0",
+  "description": "Family chore turn tracker with Telegram and Google Chat bots",
+  "main": "app.js",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "nodemon app.js",
+    "migrate": "node migrate.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^9.4.3",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "google-auth-library": "^9.7.0",
+    "googleapis": "^134.0.0",
+    "node-cron": "^3.0.3",
+    "node-telegram-bot-api": "^0.65.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  }
+}

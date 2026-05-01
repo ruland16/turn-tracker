@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Turn Tracker Dashboard</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; margin: 0; padding: 20px; background: #f5f7fa; color: #333; }
+  h1 { margin-bottom: 8px; font-size: 1.6rem; }
+  .token-input { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+  .token-input input { flex: 1; min-width: 200px; padding: 10px 12px; border: 1px solid #ccc; border-radius: 8px; font-size: 1rem; }
+  .token-input button, .btn { padding: 10px 16px; border: none; border-radius: 8px; background: #2563eb; color: #fff; font-size: 0.95rem; cursor: pointer; }
+  .btn:hover { background: #1d4ed8; }
+  .btn-success { background: #16a34a; }
+  .btn-success:hover { background: #15803d; }
+  .date-label { font-weight: 600; margin-bottom: 12px; color: #555; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 16px; }
+  .card { background: #fff; border-radius: 12px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+  .card h3 { margin: 0 0 6px; font-size: 1.1rem; }
+  .card .kid { font-size: 1.4rem; font-weight: 700; margin: 4px 0 10px; }
+  .card .meta { font-size: 0.85rem; color: #666; margin-bottom: 10px; }
+  .badge { display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 0.8rem; font-weight: 600; text-transform: uppercase; }
+  .badge-pending { background: #fef3c7; color: #92400e; }
+  .badge-done { background: #dcfce7; color: #166534; }
+  .history-table { width: 100%; border-collapse: collapse; margin-top: 8px; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
+  .history-table th, .history-table td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
+  .history-table th { background: #f8fafc; font-weight: 600; }
+  .hidden { display: none; }
+  .section { margin-bottom: 24px; }
+</style>
+</head>
+<body>
+<h1>Turn Tracker</h1>
+<div class="token-input">
+  <input type="password" id="token" placeholder="Enter dashboard auth token" />
+  <button onclick="loadToday()">Load Today</button>
+  <button class="btn-success" onclick="sendNow()">Send Notifications Now</button>
+</div>
+
+<div id="dashboard" class="hidden">
+  <div class="section">
+    <div class="date-label" id="todayDate"></div>
+    <div class="grid" id="todayGrid"></div>
+  </div>
+
+  <div class="section">
+    <h2>Last 7 Days</h2>
+    <table class="history-table">
+      <thead>
+        <tr><th>Date</th><th>Task</th><th>Kid</th><th>Status</th><th>Done At</th></tr>
+      </thead>
+      <tbody id="historyBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+const tokenInput = document.getElementById('token');
+
+function getToken() {
+  return tokenInput.value.trim();
+}
+
+async function loadToday() {
+  const token = getToken();
+  if (!token) { alert('Please enter the auth token'); return; }
+
+  try {
+    const [todayRes, histRes] = await Promise.all([
+      fetch('/api/today?token=' + encodeURIComponent(token)),
+      fetch('/api/history?days=7&token=' + encodeURIComponent(token))
+    ]);
+
+    const today = await todayRes.json();
+    const history = await histRes.json();
+
+    if (today.error) { alert(today.error); return; }
+
+    document.getElementById('todayDate').textContent = 'Today: ' + today.date;
+    const grid = document.getElementById('todayGrid');
+    grid.innerHTML = '';
+
+    for (const a of today.assignments) {
+      const div = document.createElement('div');
+      div.className = 'card';
+      const statusClass = a.status === 'done' ? 'badge-done' : 'badge-pending';
+      const doneBtn = a.status === 'pending'
+        ? `<button class="btn btn-success" onclick="markDone(${a.id})">Mark Done</button>`
+        : '';
+      div.innerHTML = `
+        <h3>${a.display_name}</h3>
+        <div class="kid">${a.kid_name}</div>
+        <div class="meta">Platform: ${a.platform}</div>
+        <span class="badge ${statusClass}">${a.status}</span>
+        ${doneBtn}
+      `;
+      grid.appendChild(div);
+    }
+
+    const tbody = document.getElementById('historyBody');
+    tbody.innerHTML = history.map(h => {
+      const statusClass = h.status === 'done' ? 'badge-done' : 'badge-pending';
+      return `<tr>
+        <td>${h.date}</td>
+        <td>${h.display_name}</td>
+        <td>${h.kid_name}</td>
+        <td><span class="badge ${statusClass}">${h.status}</span></td>
+        <td>${h.completed_at || '-'}</td>
+      </tr>`;
+    }).join('');
+
+    document.getElementById('dashboard').classList.remove('hidden');
+  } catch (e) {
+    alert('Failed to load data: ' + e.message);
+  }
+}
+
+async function markDone(id) {
+  const token = getToken();
+  await fetch(`/api/assignments/${id}/done?token=` + encodeURIComponent(token), { method: 'POST' });
+  loadToday();
+}
+
+async function sendNow() {
+  const token = getToken();
+  if (!token) { alert('Please enter the auth token'); return; }
+  const res = await fetch('/api/send-now?token=' + encodeURIComponent(token), { method: 'POST' });
+  const data = await res.json();
+  alert('Sent notifications for ' + data.sent + ' assignments');
+}
+</script>
+</body>
+</html>
