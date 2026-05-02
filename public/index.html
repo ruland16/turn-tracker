@@ -101,12 +101,13 @@ async function loadToday() {
     const tbody = document.getElementById('historyBody');
     tbody.innerHTML = history.map(h => {
       const statusClass = h.status === 'done' ? 'badge-done' : 'badge-pending';
+      const doneAt = h.completed_at ? new Date(h.completed_at).toLocaleString() : '-';
       return `<tr>
         <td>${h.date}</td>
         <td>${h.display_name}</td>
         <td>${h.kid_name}</td>
         <td><span class="badge ${statusClass}">${h.status}</span></td>
-        <td>${h.completed_at || '-'}</td>
+        <td>${doneAt}</td>
       </tr>`;
     }).join('');
 
