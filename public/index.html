@@ -3,79 +3,576 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Turn Tracker Dashboard</title>
+<title>Turn Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  * { box-sizing: border-box; }
-  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif; margin: 0; padding: 20px; background: #f5f7fa; color: #333; }
-  h1 { margin-bottom: 8px; font-size: 1.6rem; }
-  .token-input { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
-  .token-input input { flex: 1; min-width: 200px; padding: 10px 12px; border: 1px solid #ccc; border-radius: 8px; font-size: 1rem; }
-  .token-input button, .btn { padding: 10px 16px; border: none; border-radius: 8px; background: #2563eb; color: #fff; font-size: 0.95rem; cursor: pointer; }
-  .btn:hover { background: #1d4ed8; }
-  .btn-success { background: #16a34a; }
-  .btn-success:hover { background: #15803d; }
-  .btn-warning { background: #f59e0b; }
-  .btn-warning:hover { background: #d97706; }
-  .btn-danger { background: #ef4444; }
-  .btn-danger:hover { background: #dc2626; }
-  .btn-sm { padding: 6px 12px; font-size: 0.8rem; }
-  .date-label { font-weight: 600; margin-bottom: 12px; color: #555; }
-  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
-  .card { background: #fff; border-radius: 12px; padding: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
-  .card h3 { margin: 0 0 6px; font-size: 1.1rem; }
-  .card .kid { font-size: 1.4rem; font-weight: 700; margin: 4px 0 10px; }
-  .card .meta { font-size: 0.85rem; color: #666; margin-bottom: 10px; }
-  .badge { display: inline-block; padding: 4px 10px; border-radius: 999px; font-size: 0.8rem; font-weight: 600; text-transform: uppercase; }
-  .badge-pending { background: #fef3c7; color: #92400e; }
-  .badge-done { background: #dcfce7; color: #166534; }
-  .badge-disabled { background: #fee2e2; color: #991b1b; }
-  .history-table { width: 100%; border-collapse: collapse; margin-top: 8px; background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.08); }
-  .history-table th, .history-table td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
-  .history-table th { background: #f8fafc; font-weight: 600; }
-  .hidden { display: none; }
-  .section { margin-bottom: 24px; }
-  .task-list { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
-  .task-toggle { display: flex; align-items: center; gap: 8px; padding: 10px 14px; background: #fff; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.08); cursor: pointer; }
-  .task-toggle.disabled { background: #fee2e2; }
-  .task-toggle input { cursor: pointer; }
-  .card-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
-  .skip-panel { margin-top: 10px; padding: 10px; background: #f8fafc; border-radius: 8px; }
-  .skip-panel select { padding: 6px 10px; border-radius: 6px; border: 1px solid #ccc; font-size: 0.9rem; }
-  .skip-note { font-size: 0.8rem; color: #92400e; margin-top: 6px; }
-  .makeup-badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; background: #dbeafe; color: #1e40af; margin-left: 6px; }
+  :root {
+    --bg: #f8fafc;
+    --surface: #ffffff;
+    --surface-hover: #f1f5f9;
+    --border: #e2e8f0;
+    --text: #0f172a;
+    --text-secondary: #64748b;
+    --primary: #4f46e5;
+    --primary-hover: #4338ca;
+    --success: #10b981;
+    --success-bg: #d1fae5;
+    --warning: #f59e0b;
+    --warning-bg: #fef3c7;
+    --danger: #ef4444;
+    --danger-hover: #dc2626;
+    --radius: 16px;
+    --radius-sm: 10px;
+    --shadow: 0 1px 3px rgba(15,23,42,0.04), 0 1px 2px rgba(15,23,42,0.06);
+    --shadow-md: 0 4px 6px -1px rgba(15,23,42,0.05), 0 2px 4px -2px rgba(15,23,42,0.05);
+    --shadow-lg: 0 10px 15px -3px rgba(15,23,42,0.06), 0 4px 6px -4px rgba(15,23,42,0.04);
+    --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 32px 24px;
+  }
+
+  /* Header */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 32px;
+    flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  .header h1 {
+    font-size: 1.75rem;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+  }
+
+  .header .subtitle {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    margin-top: 2px;
+  }
+
+  /* Auth bar */
+  .auth-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    margin-bottom: 32px;
+    flex-wrap: wrap;
+  }
+
+  .auth-bar input {
+    flex: 1;
+    min-width: 200px;
+    padding: 10px 14px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 0.9375rem;
+    background: var(--bg);
+    color: var(--text);
+    transition: var(--transition);
+  }
+
+  .auth-bar input:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(79,70,229,0.1);
+  }
+
+  .auth-bar label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .auth-bar label input {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--primary);
+    cursor: pointer;
+    min-width: auto;
+  }
+
+  /* Buttons */
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 18px;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: 0.875rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+    white-space: nowrap;
+  }
+
+  .btn-primary {
+    background: var(--primary);
+    color: #fff;
+  }
+
+  .btn-primary:hover {
+    background: var(--primary-hover);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+  }
+
+  .btn-success {
+    background: var(--success);
+    color: #fff;
+  }
+
+  .btn-success:hover {
+    background: #059669;
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+  }
+
+  .btn-warning {
+    background: var(--warning);
+    color: #fff;
+  }
+
+  .btn-warning:hover {
+    background: #d97706;
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+  }
+
+  .btn-danger {
+    background: var(--danger);
+    color: #fff;
+  }
+
+  .btn-danger:hover {
+    background: var(--danger-hover);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+  }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--text-secondary);
+    border: 1px solid var(--border);
+  }
+
+  .btn-ghost:hover {
+    background: var(--surface-hover);
+    color: var(--text);
+  }
+
+  .btn-sm {
+    padding: 6px 12px;
+    font-size: 0.8125rem;
+  }
+
+  /* Section */
+  .section {
+    margin-bottom: 40px;
+  }
+
+  .section-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin-bottom: 16px;
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* Task toggles */
+  .task-list {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .task-toggle {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 18px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: var(--transition);
+    user-select: none;
+  }
+
+  .task-toggle:hover {
+    border-color: #cbd5e1;
+    box-shadow: var(--shadow-md);
+  }
+
+  .task-toggle.disabled {
+    background: #fef2f2;
+    border-color: #fecaca;
+  }
+
+  .task-toggle.disabled:hover {
+    border-color: #fca5a5;
+  }
+
+  /* Custom checkbox */
+  .custom-check {
+    width: 22px;
+    height: 22px;
+    border: 2px solid var(--border);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition);
+    flex-shrink: 0;
+  }
+
+  .task-toggle:not(.disabled) .custom-check {
+    background: var(--primary);
+    border-color: var(--primary);
+  }
+
+  .task-toggle:not(.disabled) .custom-check::after {
+    content: '';
+    width: 6px;
+    height: 10px;
+    border: solid #fff;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+    margin-top: -2px;
+  }
+
+  .task-toggle .label {
+    font-weight: 600;
+    font-size: 0.9375rem;
+  }
+
+  .task-toggle .label span {
+    margin-left: 8px;
+  }
+
+  /* Date label */
+  .date-label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-bottom: 16px;
+    font-weight: 500;
+  }
+
+  /* Cards grid */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    transition: var(--transition);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, var(--primary), #818cf8);
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .card:hover::before {
+    opacity: 1;
+  }
+
+  .card:hover {
+    box-shadow: var(--shadow-lg);
+    transform: translateY(-2px);
+  }
+
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 16px;
+  }
+
+  .card h3 {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+  }
+
+  .card .kid {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 4px 0 12px;
+    letter-spacing: -0.025em;
+  }
+
+  .card .meta {
+    font-size: 0.8125rem;
+    color: var(--text-secondary);
+    margin-bottom: 16px;
+    line-height: 1.6;
+  }
+
+  .card-actions {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 16px;
+  }
+
+  /* Badges */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+  }
+
+  .badge-pending {
+    background: var(--warning-bg);
+    color: #92400e;
+  }
+
+  .badge-pending::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    background: var(--warning);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+
+  .badge-done {
+    background: var(--success-bg);
+    color: #065f46;
+  }
+
+  .badge-done::before {
+    content: '\2713';
+    font-size: 0.7rem;
+  }
+
+  .badge-disabled {
+    background: #fee2e2;
+    color: #991b1b;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  /* Skip panel */
+  .skip-panel {
+    margin-top: 16px;
+    padding: 16px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+  }
+
+  .skip-panel label {
+    display: block;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 10px;
+  }
+
+  .skip-panel select {
+    padding: 8px 12px;
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--border);
+    font-size: 0.9375rem;
+    background: var(--surface);
+    color: var(--text);
+    margin-right: 8px;
+    cursor: pointer;
+  }
+
+  .skip-panel select:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(79,70,229,0.1);
+  }
+
+  .skip-note {
+    font-size: 0.8125rem;
+    color: var(--text-secondary);
+    margin-top: 12px;
+    padding: 10px 12px;
+    background: #fffbeb;
+    border-radius: 8px;
+    border-left: 3px solid var(--warning);
+  }
+
+  /* History table */
+  .history-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+  }
+
+  .history-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+  }
+
+  .history-table th {
+    background: var(--bg);
+    padding: 14px 18px;
+    text-align: left;
+    font-weight: 600;
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .history-table td {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+  }
+
+  .history-table tr:last-child td {
+    border-bottom: none;
+  }
+
+  .history-table tr:hover td {
+    background: var(--surface-hover);
+  }
+
+  .history-table td:last-child {
+    color: var(--text-secondary);
+    font-size: 0.8125rem;
+  }
+
+  /* Empty state */
+  .empty-state {
+    text-align: center;
+    padding: 60px 24px;
+    color: var(--text-secondary);
+  }
+
+  .empty-state svg {
+    width: 48px;
+    height: 48px;
+    margin-bottom: 16px;
+    opacity: 0.4;
+  }
+
+  /* Utilities */
+  .hidden { display: none !important; }
+
+  /* Responsive */
+  @media (max-width: 640px) {
+    .container { padding: 20px 16px; }
+    .header h1 { font-size: 1.4rem; }
+    .grid { grid-template-columns: 1fr; }
+    .auth-bar { flex-direction: column; align-items: stretch; }
+    .auth-bar .btn { width: 100%; justify-content: center; }
+    .task-list { flex-direction: column; }
+    .task-toggle { width: 100%; }
+  }
 </style>
 </head>
 <body>
-<h1>Turn Tracker</h1>
-<div class="token-input">
-  <input type="password" id="token" placeholder="Enter dashboard auth token" />
-  <label style="display:flex;align-items:center;gap:6px;font-size:0.9rem;cursor:pointer;">
-    <input type="checkbox" id="rememberToken" checked /> Remember this device
-  </label>
-  <button onclick="loadToday()">Load Today</button>
-  <button class="btn-success" onclick="sendNow()">Send Notifications Now</button>
-  <button class="btn btn-sm" onclick="clearSavedToken()">Forget</button>
-</div>
-
-<div id="dashboard" class="hidden">
-  <div class="section">
-    <h2>Tasks</h2>
-    <div class="task-list" id="taskList"></div>
+<div class="container">
+  <div class="header">
+    <div>
+      <h1>Turn Tracker</h1>
+      <div class="subtitle">Family chore rotation dashboard</div>
+    </div>
   </div>
 
-  <div class="section">
-    <div class="date-label" id="todayDate"></div>
-    <div class="grid" id="todayGrid"></div>
+  <div class="auth-bar">
+    <input type="password" id="token" placeholder="Enter dashboard auth token" />
+    <label>
+      <input type="checkbox" id="rememberToken" checked />
+      Remember this device
+    </label>
+    <button class="btn btn-primary" onclick="loadToday()">Load Today</button>
+    <button class="btn btn-success" onclick="sendNow()">Send Now</button>
+    <button class="btn btn-ghost" onclick="clearSavedToken()">Forget</button>
   </div>
 
-  <div class="section">
-    <h2>Last 7 Days</h2>
-    <table class="history-table">
-      <thead>
-        <tr><th>Date</th><th>Task</th><th>Kid</th><th>Status</th><th>Done At</th></tr>
-      </thead>
-      <tbody id="historyBody"></tbody>
-    </table>
+  <div id="dashboard" class="hidden">
+    <div class="section">
+      <div class="section-title">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+        Tasks
+      </div>
+      <div class="task-list" id="taskList"></div>
+    </div>
+
+    <div class="section">
+      <div class="date-label" id="todayDate"></div>
+      <div class="grid" id="todayGrid"></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Last 7 Days
+      </div>
+      <div class="history-wrap">
+        <table class="history-table">
+          <thead>
+            <tr><th>Date</th><th>Task</th><th>Kid</th><th>Status</th><th>Done At</th></tr>
+          </thead>
+          <tbody id="historyBody"></tbody>
+        </table>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -102,7 +599,18 @@ function saveToken(token) {
 function clearSavedToken() {
   localStorage.removeItem('turnTrackerToken');
   tokenInput.value = '';
-  alert('Saved token cleared');
+  showToast('Saved token cleared');
+}
+
+function showToast(msg) {
+  const existing = document.querySelector('.toast');
+  if (existing) existing.remove();
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.style.cssText = 'position:fixed;bottom:24px;right:24px;background:var(--text);color:#fff;padding:12px 20px;border-radius:12px;font-size:0.875rem;font-weight:500;box-shadow:var(--shadow-lg);z-index:9999;animation:slideUp 0.3s ease;';
+  el.textContent = msg;
+  document.body.appendChild(el);
+  setTimeout(() => el.remove(), 3000);
 }
 
 async function loadToday() {
@@ -128,9 +636,18 @@ async function loadToday() {
     saveToken(token);
     renderTasks(tasks);
 
-    document.getElementById('todayDate').textContent = 'Today: ' + today.date;
+    document.getElementById('todayDate').textContent = 'Today — ' + new Date(today.date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
     const grid = document.getElementById('todayGrid');
     grid.innerHTML = '';
+
+    if (today.assignments.length === 0) {
+      grid.innerHTML = `
+        <div class="empty-state" style="grid-column:1/-1;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 12l2 2 4-4"/></svg>
+          <div style="font-weight:600;margin-bottom:4px;">No assignments today</div>
+          <div style="font-size:0.875rem;">All tasks are either disabled or already completed.</div>
+        </div>`;
+    }
 
     for (const a of today.assignments) {
       const div = document.createElement('div');
@@ -143,10 +660,12 @@ async function loadToday() {
         ? `<button class="btn btn-warning btn-sm" onclick="showSkipPanel(${a.id}, ${a.task_id}, '${a.kid_name}', ${JSON.stringify(kidMap).replace(/"/g, '&quot;')})">Skip / Reassign</button>`
         : '';
       div.innerHTML = `
-        <h3>${a.display_name}</h3>
+        <div class="card-header">
+          <h3>${a.display_name}</h3>
+          <span class="badge ${statusClass}">${a.status}</span>
+        </div>
         <div class="kid">${a.kid_name}</div>
-        <div class="meta">Platform: ${a.platform}${a.email ? ' · ' + a.email : ''}${a.chat_id ? ' · ' + a.chat_id : ''}</div>
-        <span class="badge ${statusClass}">${a.status}</span>
+        <div class="meta">${a.platform === 'email' ? a.email : (a.platform === 'telegram' ? 'Telegram' : 'Google Chat')}</div>
         <div class="card-actions">
           ${doneBtn}
           ${skipBtn}
@@ -180,8 +699,8 @@ function renderTasks(tasks) {
   container.innerHTML = tasks.map(t => {
     const disabled = t.enabled === 0;
     return `<div class="task-toggle ${disabled ? 'disabled' : ''}" onclick="toggleTask(${t.id}, this)">
-      <input type="checkbox" ${disabled ? '' : 'checked'} onclick="event.stopPropagation()" />
-      <span>${t.display_name} ${disabled ? '<span class="badge badge-disabled">OFF</span>' : ''}</span>
+      <div class="custom-check"></div>
+      <div class="label">${t.display_name}${disabled ? ' <span class="badge badge-disabled">OFF</span>' : ''}</div>
     </div>`;
   }).join('');
 }
@@ -192,11 +711,19 @@ async function toggleTask(taskId, el) {
   const data = await res.json();
   if (data.success) {
     el.classList.toggle('disabled', data.enabled === 0);
-    const checkbox = el.querySelector('input');
-    checkbox.checked = data.enabled === 1;
+    const check = el.querySelector('.custom-check');
+    if (data.enabled === 1) {
+      check.style.background = 'var(--primary)';
+      check.style.borderColor = 'var(--primary)';
+      check.innerHTML = '<div style="width:6px;height:10px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg);margin-top:-2px;"></div>';
+    } else {
+      check.style.background = 'transparent';
+      check.style.borderColor = 'var(--border)';
+      check.innerHTML = '';
+    }
     const badge = el.querySelector('.badge-disabled');
     if (data.enabled === 0 && !badge) {
-      el.querySelector('span').innerHTML += ' <span class="badge badge-disabled">OFF</span>';
+      el.querySelector('.label').innerHTML += ' <span class="badge badge-disabled">OFF</span>';
     } else if (data.enabled === 1 && badge) {
       badge.remove();
     }
@@ -225,12 +752,12 @@ function showSkipPanel(assignmentId, taskId, currentKidName, kidMap) {
       const isTwoKid = kidIds.length === 2;
 
       panel.innerHTML = `
-        <div style="margin-bottom:6px;font-weight:600;font-size:0.9rem;">Reassign to:</div>
+        <label>Reassign to</label>
         <select id="reassign-kid-${assignmentId}">
           ${kidIds.map(id => `<option value="${id}">${kidMap[id] || 'Kid ' + id}</option>`).join('')}
         </select>
-        <button class="btn btn-sm" style="margin-left:8px;" onclick="reassign(${assignmentId}, ${taskId})">Confirm</button>
-        <button class="btn btn-danger btn-sm" style="margin-left:4px;" onclick="skip(${assignmentId})">Skip Only</button>
+        <button class="btn btn-primary btn-sm" style="margin-right:4px;" onclick="reassign(${assignmentId}, ${taskId})">Confirm</button>
+        <button class="btn btn-danger btn-sm" onclick="skip(${assignmentId})">Skip Only</button>
         <div class="skip-note">${isTwoKid ? currentKidName + ' will make up this turn next time (does it twice).' : currentKidName + ' simply skips this turn. Rotation continues normally.'}</div>
       `;
       panel.classList.remove('hidden');
@@ -253,7 +780,7 @@ async function skip(assignmentId) {
   const res = await fetch(`/api/assignments/${assignmentId}/skip?token=${encodeURIComponent(token)}`, { method: 'POST' });
   const data = await res.json();
   if (data.success) {
-    alert(`Reassigned to ${data.newKid.name}. ${data.makeup ? 'Makeup turn recorded.' : ''}`);
+    showToast(`Reassigned to ${data.newKid.name}${data.makeup ? ' — makeup recorded' : ''}`);
   } else {
     alert(data.error || 'Failed');
   }
@@ -265,7 +792,7 @@ async function sendNow() {
   if (!token) { alert('Please enter the auth token'); return; }
   const res = await fetch('/api/send-now?token=' + encodeURIComponent(token), { method: 'POST' });
   const data = await res.json();
-  alert('Sent notifications for ' + data.sent + ' assignments');
+  showToast('Sent ' + data.sent + ' notifications');
 }
 </script>
 </body>
