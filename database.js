@@ -29,9 +29,7 @@ db.exec(`
     kid_id INTEGER NOT NULL,
     status TEXT DEFAULT 'pending' CHECK(status IN ('pending','done')),
     completed_at DATETIME,
-    UNIQUE(date, task_id),
-    FOREIGN KEY(task_id) REFERENCES tasks(id),
-    FOREIGN KEY(kid_id) REFERENCES kids(id)
+    UNIQUE(date, task_id)
   );
 
   CREATE TABLE IF NOT EXISTS makeup_assignments (
@@ -39,9 +37,7 @@ db.exec(`
     task_id INTEGER NOT NULL,
     kid_id INTEGER NOT NULL,
     status TEXT DEFAULT 'pending' CHECK(status IN ('pending','done')),
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY(task_id) REFERENCES tasks(id),
-    FOREIGN KEY(kid_id) REFERENCES kids(id)
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 
   CREATE INDEX IF NOT EXISTS idx_assignments_date ON assignments(date);
@@ -88,6 +84,53 @@ function migrateSchema() {
   if (!hasEnabled) {
     db.exec(`ALTER TABLE tasks ADD COLUMN enabled INTEGER DEFAULT 1`);
     console.log('[DB] Added tasks.enabled column');
+  }
+
+  // Fix stale FK references after kids table recreation
+  const assignmentsSql = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='assignments'").get();
+  if (assignmentsSql && assignmentsSql.sql.includes('REFERENCES kids')) {
+    console.log('[DB] Recreating assignments table to fix stale FK references...');
+    db.exec(`PRAGMA foreign_keys = OFF`);
+    db.exec(`
+      BEGIN TRANSACTION;
+      CREATE TABLE assignments_new (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        date TEXT NOT NULL,
+        task_id INTEGER NOT NULL,
+        kid_id INTEGER NOT NULL,
+        status TEXT DEFAULT 'pending' CHECK(status IN ('pending','done')),
+        completed_at DATETIME,
+        UNIQUE(date, task_id)
+      );
+      INSERT INTO assignments_new SELECT * FROM assignments;
+      DROP TABLE assignments;
+      ALTER TABLE assignments_new RENAME TO assignments;
+      COMMIT;
+    `);
+    db.exec(`PRAGMA foreign_keys = ON`);
+    console.log('[DB] Assignments table recreated');
+  }
+
+  const makeupSql = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='makeup_assignments'").get();
+  if (makeupSql && makeupSql.sql.includes('REFERENCES kids')) {
+    console.log('[DB] Recreating makeup_assignments table to fix stale FK references...');
+    db.exec(`PRAGMA foreign_keys = OFF`);
+    db.exec(`
+      BEGIN TRANSACTION;
+      CREATE TABLE makeup_new (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        task_id INTEGER NOT NULL,
+        kid_id INTEGER NOT NULL,
+        status TEXT DEFAULT 'pending' CHECK(status IN ('pending','done')),
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+      INSERT INTO makeup_new SELECT * FROM makeup_assignments;
+      DROP TABLE makeup_assignments;
+      ALTER TABLE makeup_new RENAME TO makeup_assignments;
+      COMMIT;
+    `);
+    db.exec(`PRAGMA foreign_keys = ON`);
+    console.log('[DB] Makeup assignments table recreated');
   }
 }
 
