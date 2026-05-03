@@ -88,7 +88,7 @@ function migrateSchema() {
 
   // Fix stale FK references after kids table recreation
   const assignmentsSql = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='assignments'").get();
-  if (assignmentsSql && assignmentsSql.sql.includes('REFERENCES kids')) {
+  if (assignmentsSql && (assignmentsSql.sql.includes('REFERENCES kids') || assignmentsSql.sql.includes('kids_old'))) {
     console.log('[DB] Recreating assignments table to fix stale FK references...');
     db.exec(`PRAGMA foreign_keys = OFF`);
     db.exec(`
@@ -112,7 +112,7 @@ function migrateSchema() {
   }
 
   const makeupSql = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='makeup_assignments'").get();
-  if (makeupSql && makeupSql.sql.includes('REFERENCES kids')) {
+  if (makeupSql && (makeupSql.sql.includes('REFERENCES kids') || makeupSql.sql.includes('kids_old'))) {
     console.log('[DB] Recreating makeup_assignments table to fix stale FK references...');
     db.exec(`PRAGMA foreign_keys = OFF`);
     db.exec(`
