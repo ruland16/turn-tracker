@@ -3,7 +3,7 @@ const express = require('express');
 const path = require('path');
 const db = require('./database');
 const { scheduleDailyNotifications, runNow } = require('./scheduler');
-const { getAssignmentsForDate, markDone, createAssignmentsForDate } = require('./rotations');
+const { getAssignmentsForDate, markDone, createAssignmentsForDate, toggleTaskEnabled, reassignAssignment, skipAssignment, getTasks } = require('./rotations');
 const { handleWebhook } = require('./google-chat-bot');
 require('./telegram-bot');
 
@@ -43,6 +43,33 @@ app.get('/api/history', authMiddleware, (req, res) => {
 app.post('/api/assignments/:id/done', authMiddleware, (req, res) => {
   markDone(req.params.id);
   res.json({ success: true });
+});
+
+app.get('/api/kids', authMiddleware, (req, res) => {
+  const rows = db.prepare('SELECT id, name FROM kids ORDER BY id').all();
+  res.json(rows);
+});
+
+app.get('/api/tasks', authMiddleware, (req, res) => {
+  const tasks = getTasks();
+  res.json(tasks);
+});
+
+app.post('/api/tasks/:id/toggle', authMiddleware, (req, res) => {
+  const result = toggleTaskEnabled(req.params.id);
+  res.json(result);
+});
+
+app.post('/api/assignments/:id/reassign', authMiddleware, (req, res) => {
+  const { kid_id } = req.body;
+  if (!kid_id) return res.status(400).json({ error: 'kid_id required' });
+  reassignAssignment(req.params.id, kid_id);
+  res.json({ success: true });
+});
+
+app.post('/api/assignments/:id/skip', authMiddleware, (req, res) => {
+  const result = skipAssignment(req.params.id);
+  res.json(result);
 });
 
 app.post('/api/seed-test', authMiddleware, (req, res) => {

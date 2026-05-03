@@ -25,11 +25,54 @@ function getKidForTurn(taskId, forDate = new Date().toISOString().slice(0, 10)) 
   return db.prepare('SELECT * FROM kids WHERE id = ?').get(kidId);
 }
 
+function getNextKidForTurn(taskId, forDate = new Date().toISOString().slice(0, 10)) {
+  const task = db.prepare('SELECT * FROM tasks WHERE id = ?').get(taskId);
+  if (!task) return null;
+
+  const kidIds = JSON.parse(task.kid_ids);
+  if (kidIds.length === 0) return null;
+
+  const dayIndex = daysSinceStart(forDate);
+  const nextKidId = kidIds[(dayIndex + 1) % kidIds.length];
+
+  return db.prepare('SELECT * FROM kids WHERE id = ?').get(nextKidId);
+}
+
+function getPendingMakeup(taskId) {
+  return db.prepare(`
+    SELECT m.*, k.name as kid_name
+    FROM makeup_assignments m
+    JOIN kids k ON m.kid_id = k.id
+    WHERE m.task_id = ? AND m.status = 'pending'
+    ORDER BY m.created_at ASC
+    LIMIT 1
+  `).get(taskId);
+}
+
+function markMakeupDone(makeupId) {
+  db.prepare('UPDATE makeup_assignments SET status = ? WHERE id = ?').run('done', makeupId);
+}
+
+function createMakeup(taskId, kidId) {
+  db.prepare('INSERT INTO makeup_assignments (task_id, kid_id) VALUES (?, ?)').run(taskId, kidId);
+}
+
 function createAssignmentsForDate(date = new Date().toISOString().slice(0, 10)) {
-  const tasks = db.prepare('SELECT * FROM tasks').all();
+  const tasks = db.prepare('SELECT * FROM tasks WHERE enabled = 1').all();
   const insert = db.prepare('INSERT OR IGNORE INTO assignments (date, task_id, kid_id) VALUES (?, ?, ?)');
 
   for (const task of tasks) {
+    const kidIds = JSON.parse(task.kid_ids);
+
+    if (kidIds.length === 2) {
+      const makeup = getPendingMakeup(task.id);
+      if (makeup) {
+        insert.run(date, task.id, makeup.kid_id);
+        markMakeupDone(makeup.id);
+        continue;
+      }
+    }
+
     const kid = getKidForTurn(task.id, date);
     if (kid) {
       insert.run(date, task.id, kid.id);
@@ -68,12 +111,59 @@ function getAssignmentByKidAndTask(date, kidId, taskId) {
   return db.prepare('SELECT * FROM assignments WHERE date = ? AND kid_id = ? AND task_id = ?').get(date, kidId, taskId);
 }
 
+function reassignAssignment(assignmentId, newKidId) {
+  return db.prepare('UPDATE assignments SET kid_id = ? WHERE id = ?').run(newKidId, assignmentId);
+}
+
+function skipAssignment(assignmentId) {
+  const assignment = getAssignmentById(assignmentId);
+  if (!assignment) return { error: 'Assignment not found' };
+
+  const task = db.prepare('SELECT * FROM tasks WHERE id = ?').get(assignment.task_id);
+  const kidIds = JSON.parse(task.kid_ids);
+  const isTwoKidTask = kidIds.length === 2;
+
+  const nextKid = getNextKidForTurn(assignment.task_id, assignment.date);
+  if (!nextKid) return { error: 'No next kid found' };
+
+  reassignAssignment(assignmentId, nextKid.id);
+
+  if (isTwoKidTask) {
+    createMakeup(assignment.task_id, assignment.kid_id);
+  }
+
+  return { success: true, newKid: nextKid, makeup: isTwoKidTask };
+}
+
+function toggleTaskEnabled(taskId) {
+  const task = db.prepare('SELECT * FROM tasks WHERE id = ?').get(taskId);
+  if (!task) return { error: 'Task not found' };
+
+  const newEnabled = task.enabled === 1 ? 0 : 1;
+  db.prepare('UPDATE tasks SET enabled = ? WHERE id = ?').run(newEnabled, taskId);
+  return { success: true, enabled: newEnabled };
+}
+
+function getTasks() {
+  return db.prepare('SELECT * FROM tasks ORDER BY id').all();
+}
+
+function getMakeupCount(taskId, kidId) {
+  return db.prepare('SELECT COUNT(*) as c FROM makeup_assignments WHERE task_id = ? AND kid_id = ? AND status = ?').get(taskId, kidId, 'pending').c;
+}
+
 module.exports = {
   getKidForTurn,
+  getNextKidForTurn,
   createAssignmentsForDate,
   getAssignmentsForDate,
   markDone,
   getAssignmentById,
   getAssignmentByKidAndTask,
+  reassignAssignment,
+  skipAssignment,
+  toggleTaskEnabled,
+  getTasks,
+  getMakeupCount,
   daysSinceStart
 };

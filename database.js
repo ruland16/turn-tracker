@@ -18,6 +18,7 @@ db.exec(`
     name TEXT NOT NULL UNIQUE,
     display_name TEXT NOT NULL,
     kid_ids TEXT NOT NULL,
+    enabled INTEGER DEFAULT 1,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 
@@ -33,8 +34,19 @@ db.exec(`
     FOREIGN KEY(kid_id) REFERENCES kids(id)
   );
 
+  CREATE TABLE IF NOT EXISTS makeup_assignments (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    task_id INTEGER NOT NULL,
+    kid_id INTEGER NOT NULL,
+    status TEXT DEFAULT 'pending' CHECK(status IN ('pending','done')),
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY(task_id) REFERENCES tasks(id),
+    FOREIGN KEY(kid_id) REFERENCES kids(id)
+  );
+
   CREATE INDEX IF NOT EXISTS idx_assignments_date ON assignments(date);
   CREATE INDEX IF NOT EXISTS idx_assignments_status ON assignments(status);
+  CREATE INDEX IF NOT EXISTS idx_makeup_task_status ON makeup_assignments(task_id, status);
 `);
 
 function migrateSchema() {
@@ -69,6 +81,13 @@ function migrateSchema() {
       COMMIT;
     `);
     db.exec(`PRAGMA foreign_keys = ON;`);
+  }
+
+  const taskCols = db.prepare("PRAGMA table_info(tasks)").all();
+  const hasEnabled = taskCols.some(c => c.name === 'enabled');
+  if (!hasEnabled) {
+    db.exec(`ALTER TABLE tasks ADD COLUMN enabled INTEGER DEFAULT 1`);
+    console.log('[DB] Added tasks.enabled column');
   }
 }
 
