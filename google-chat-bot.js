@@ -76,6 +76,12 @@ async function handleWebhook(req) {
   const event = req.body;
   if (!event) return { text: 'No event' };
 
+  // Log every webhook event so we can capture space IDs
+  const spaceName = event.space?.name || 'unknown';
+  const userName = event.user?.displayName || 'unknown';
+  console.log(`[Google Chat Webhook] Event: ${event.type}, Space: ${spaceName}, User: ${userName}`);
+  console.log(JSON.stringify(event, null, 2));
+
   if (event.type === 'CARD_CLICKED') {
     const action = event.common?.invokedFunction;
     const params = event.common?.parameters || {};

@@ -2,6 +2,7 @@ const cron = require('node-cron');
 const { createAssignmentsForDate, getAssignmentsForDate, getKidForTurn } = require('./rotations');
 const { sendNotification: sendTelegram } = require('./telegram-bot');
 const { sendNotification: sendGoogleChat } = require('./google-chat-bot');
+const { sendNotification: sendEmail } = require('./email-notifier');
 
 function scheduleDailyNotifications() {
   cron.schedule('0 8 * * *', async () => {
@@ -14,12 +15,14 @@ function scheduleDailyNotifications() {
     for (const assignment of assignments) {
       if (assignment.status !== 'pending') continue;
 
-      const kid = { id: assignment.kid_id, name: assignment.kid_name, platform: assignment.platform, chat_id: assignment.chat_id };
+      const kid = { id: assignment.kid_id, name: assignment.kid_name, platform: assignment.platform, chat_id: assignment.chat_id, email: assignment.email };
 
       if (assignment.platform === 'telegram') {
         await sendTelegram(kid, assignment);
       } else if (assignment.platform === 'google_chat') {
         await sendGoogleChat(kid, assignment);
+      } else if (assignment.platform === 'email') {
+        await sendEmail(kid, assignment);
       }
     }
 

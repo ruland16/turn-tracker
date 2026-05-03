@@ -7,8 +7,9 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS kids (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     name TEXT NOT NULL UNIQUE,
-    platform TEXT NOT NULL CHECK(platform IN ('telegram','google_chat')),
+    platform TEXT NOT NULL CHECK(platform IN ('telegram','google_chat','email')),
     chat_id TEXT UNIQUE,
+    email TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
 
@@ -36,6 +37,43 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_assignments_status ON assignments(status);
 `);
 
+function migrateSchema() {
+  const columns = db.prepare("PRAGMA table_info(kids)").all();
+  const hasEmail = columns.some(c => c.name === 'email');
+
+  if (!hasEmail) {
+    db.exec(`ALTER TABLE kids ADD COLUMN email TEXT`);
+  }
+
+  const tableInfo = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='kids'").get();
+  const tableSql = tableInfo?.sql || '';
+
+  const hasOldConstraint = tableSql.includes("('telegram','google_chat')") && !tableSql.includes("'email'");
+  if (hasOldConstraint) {
+    console.log('[DB] Recreating kids table to support email platform...');
+    db.exec(`PRAGMA foreign_keys = OFF;`);
+    db.exec(`
+      BEGIN TRANSACTION;
+      CREATE TABLE kids_new (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL UNIQUE,
+        platform TEXT NOT NULL CHECK(platform IN ('telegram','google_chat','email')),
+        chat_id TEXT UNIQUE,
+        email TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+      INSERT INTO kids_new (id, name, platform, chat_id, email, created_at)
+        SELECT id, name, platform, chat_id, NULL, created_at FROM kids;
+      DROP TABLE kids;
+      ALTER TABLE kids_new RENAME TO kids;
+      COMMIT;
+    `);
+    db.exec(`PRAGMA foreign_keys = ON;`);
+  }
+}
+
+migrateSchema();
+
 function seedIfEmpty() {
   const kidCount = db.prepare('SELECT COUNT(*) as c FROM kids').get().c;
   if (kidCount > 0) return;
@@ -43,8 +81,8 @@ function seedIfEmpty() {
   const insertKid = db.prepare('INSERT INTO kids (name, platform, chat_id) VALUES (?, ?, ?)');
   insertKid.run('Matt', 'telegram', null);
   insertKid.run('Rinata', 'telegram', null);
-  insertKid.run('Olivia', 'google_chat', null);
-  insertKid.run('Akim', 'google_chat', null);
+  insertKid.run('Olivia', 'email', null);
+  insertKid.run('Akim', 'email', null);
 
   const kids = db.prepare('SELECT id, name FROM kids').all();
   const kidMap = Object.fromEntries(kids.map(k => [k.name, k.id]));

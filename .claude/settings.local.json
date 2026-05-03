@@ -8,7 +8,15 @@
       "Bash(git commit *)",
       "Bash(git remote *)",
       "Bash(git branch *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "Bash(scp *)",
+      "Bash(ssh *)",
+      "Bash(nslookup *)",
+      "Bash(curl *)",
+      "Bash(node *)",
+      "Bash(npm install *)",
+      "Bash(pm2 list *)",
+      "Bash(pm2 describe *)"
     ]
   }
 }

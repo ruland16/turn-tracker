@@ -39,7 +39,7 @@ function createAssignmentsForDate(date = new Date().toISOString().slice(0, 10)) 
 
 function getAssignmentsForDate(date = new Date().toISOString().slice(0, 10)) {
   return db.prepare(`
-    SELECT a.*, k.name as kid_name, k.platform, k.chat_id, t.name as task_name, t.display_name
+    SELECT a.*, k.name as kid_name, k.platform, k.chat_id, k.email, t.name as task_name, t.display_name
     FROM assignments a
     JOIN kids k ON a.kid_id = k.id
     JOIN tasks t ON a.task_id = t.id
@@ -56,7 +56,7 @@ function markDone(assignmentId) {
 
 function getAssignmentById(id) {
   return db.prepare(`
-    SELECT a.*, k.name as kid_name, k.platform, k.chat_id, t.name as task_name, t.display_name
+    SELECT a.*, k.name as kid_name, k.platform, k.chat_id, k.email, t.name as task_name, t.display_name
     FROM assignments a
     JOIN kids k ON a.kid_id = k.id
     JOIN tasks t ON a.task_id = t.id

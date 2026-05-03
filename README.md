@@ -1,12 +1,12 @@
 # Turn Tracker
 
-A family chore rotation tracker that sends daily notifications via Telegram and Google Chat, with a web dashboard for parents.
+A family chore rotation tracker that sends daily notifications via Telegram and Email, with a web dashboard for parents.
 
 ## Features
 
 - **Daily automatic assignments**: Rotates kids through chores based on a start date.
 - **Telegram bot**: Sends messages with inline "Done" buttons to Matt and Rinata.
-- **Google Chat bot**: Sends card messages with "Done" buttons to Olivia and Akim.
+- **Email notifications**: Sends daily turn reminders to Olivia and Akim via email.
 - **Web dashboard**: View today's assignments, history, manually mark done, and trigger notifications on demand.
 
 ## Setup
@@ -29,6 +29,11 @@ cp .env.example .env
 |---|---|
 | `PORT` | Port for the web server (default 3000) |
 | `TELEGRAM_BOT_TOKEN` | From [@BotFather](https://t.me/BotFather) |
+| `SMTP_HOST` | SMTP server host (e.g. smtp.gmail.com) |
+| `SMTP_PORT` | SMTP server port (usually 587) |
+| `SMTP_SECURE` | Use TLS? (usually false for port 587) |
+| `SMTP_USER` | SMTP login email |
+| `SMTP_PASS` | SMTP password or app password |
 | `DASHBOARD_AUTH_TOKEN` | Secret password for the dashboard |
 | `START_DATE` | Date to begin rotation counting (YYYY-MM-DD) |
 
@@ -43,15 +48,22 @@ cp .env.example .env
    ```
    (The bot prints incoming chat IDs to the console when someone messages it.)
 
-### 4. Set up Google Chat bot
+### 4. Set up Email notifications
 
-This is more involved than Telegram:
-
-1. Go to [Google Cloud Console](https://console.cloud.google.com/) and create a project.
-2. Enable the **Google Chat API**.
-3. Create a service account, download the JSON key, and paste its contents into `.env` as `GOOGLE_CHAT_SERVICE_ACCOUNT_JSON`.
-4. In the Google Chat API configuration, set the bot endpoint to `https://your-domain.com/google-chat`.
-5. To find a user's DM space ID, you typically need them to first message the bot in a DM, then inspect the webhook payload for the `space` name. Save that space name (e.g., `spaces/AAAA_12345`) into the kid's `chat_id` field.
+1. In `.env`, set your SMTP credentials. For Gmail:
+   ```
+   SMTP_HOST=smtp.gmail.com
+   SMTP_PORT=587
+   SMTP_SECURE=false
+   SMTP_USER=your-email@gmail.com
+   SMTP_PASS=your-app-password
+   ```
+   (Generate an app password at https://myaccount.google.com/apppasswords)
+2. Update the kids table with email addresses:
+   ```sql
+   UPDATE kids SET platform = 'email', email = 'akus.shaikh@gmail.com' WHERE name = 'Akim';
+   UPDATE kids SET platform = 'email', email = 'oliviiashaikh@gmail.com' WHERE name = 'Olivia';
+   ```
 
 ### 5. Run locally
 

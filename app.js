@@ -55,14 +55,16 @@ app.post('/api/seed-test', authMiddleware, (req, res) => {
 app.post('/api/send-now', authMiddleware, async (req, res) => {
   const { sendNotification: sendTelegram } = require('./telegram-bot');
   const { sendNotification: sendGoogleChat } = require('./google-chat-bot');
+  const { sendNotification: sendEmail } = require('./email-notifier');
   const today = new Date().toISOString().slice(0, 10);
   const assignments = getAssignmentsForDate(today);
 
   for (const a of assignments) {
     if (a.status === 'pending') {
-      const kid = { id: a.kid_id, name: a.kid_name, platform: a.platform, chat_id: a.chat_id };
+      const kid = { id: a.kid_id, name: a.kid_name, platform: a.platform, chat_id: a.chat_id, email: a.email };
       if (a.platform === 'telegram') await sendTelegram(kid, a);
       else if (a.platform === 'google_chat') await sendGoogleChat(kid, a);
+      else if (a.platform === 'email') await sendEmail(kid, a);
     }
   }
 

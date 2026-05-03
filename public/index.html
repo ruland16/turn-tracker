@@ -91,7 +91,7 @@ async function loadToday() {
       div.innerHTML = `
         <h3>${a.display_name}</h3>
         <div class="kid">${a.kid_name}</div>
-        <div class="meta">Platform: ${a.platform}</div>
+        <div class="meta">Platform: ${a.platform}${a.email ? ' · ' + a.email : ''}${a.chat_id ? ' · ' + a.chat_id : ''}</div>
         <span class="badge ${statusClass}">${a.status}</span>
         ${doneBtn}
       `;
