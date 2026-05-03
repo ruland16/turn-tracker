@@ -49,8 +49,12 @@
 <h1>Turn Tracker</h1>
 <div class="token-input">
   <input type="password" id="token" placeholder="Enter dashboard auth token" />
+  <label style="display:flex;align-items:center;gap:6px;font-size:0.9rem;cursor:pointer;">
+    <input type="checkbox" id="rememberToken" checked /> Remember this device
+  </label>
   <button onclick="loadToday()">Load Today</button>
   <button class="btn-success" onclick="sendNow()">Send Notifications Now</button>
+  <button class="btn btn-sm" onclick="clearSavedToken()">Forget</button>
 </div>
 
 <div id="dashboard" class="hidden">
@@ -77,9 +81,28 @@
 
 <script>
 const tokenInput = document.getElementById('token');
+const rememberCheckbox = document.getElementById('rememberToken');
+
+// Auto-fill saved token on page load
+const savedToken = localStorage.getItem('turnTrackerToken');
+if (savedToken) {
+  tokenInput.value = savedToken;
+}
 
 function getToken() {
   return tokenInput.value.trim();
+}
+
+function saveToken(token) {
+  if (rememberCheckbox.checked) {
+    localStorage.setItem('turnTrackerToken', token);
+  }
+}
+
+function clearSavedToken() {
+  localStorage.removeItem('turnTrackerToken');
+  tokenInput.value = '';
+  alert('Saved token cleared');
 }
 
 async function loadToday() {
@@ -102,6 +125,7 @@ async function loadToday() {
 
     if (today.error) { alert(today.error); return; }
 
+    saveToken(token);
     renderTasks(tasks);
 
     document.getElementById('todayDate').textContent = 'Today: ' + today.date;
