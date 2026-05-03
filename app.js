@@ -23,6 +23,7 @@ function authMiddleware(req, res, next) {
 
 app.get('/api/today', authMiddleware, (req, res) => {
   const today = new Date().toISOString().slice(0, 10);
+  createAssignmentsForDate(today);
   const assignments = getAssignmentsForDate(today);
   res.json({ date: today, assignments });
 });
