@@ -86,6 +86,13 @@ function migrateSchema() {
     console.log('[DB] Added tasks.enabled column');
   }
 
+  const assignmentCols = db.prepare("PRAGMA table_info(assignments)").all();
+  const hasConfirmToken = assignmentCols.some(c => c.name === 'confirm_token');
+  if (!hasConfirmToken) {
+    db.exec(`ALTER TABLE assignments ADD COLUMN confirm_token TEXT`);
+    console.log('[DB] Added assignments.confirm_token column');
+  }
+
   // Fix stale FK references after kids table recreation
   const assignmentsSql = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='assignments'").get();
   if (assignmentsSql && (assignmentsSql.sql.includes('REFERENCES kids') || assignmentsSql.sql.includes('kids_old'))) {

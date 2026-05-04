@@ -97,6 +97,20 @@ function markDone(assignmentId) {
   ).run('done', assignmentId);
 }
 
+function setConfirmToken(assignmentId, token) {
+  db.prepare('UPDATE assignments SET confirm_token = ? WHERE id = ?').run(token, assignmentId);
+}
+
+function getAssignmentByToken(token) {
+  return db.prepare(`
+    SELECT a.*, k.name as kid_name, t.display_name
+    FROM assignments a
+    JOIN kids k ON a.kid_id = k.id
+    JOIN tasks t ON a.task_id = t.id
+    WHERE a.confirm_token = ?
+  `).get(token);
+}
+
 function getAssignmentById(id) {
   return db.prepare(`
     SELECT a.*, k.name as kid_name, k.platform, k.chat_id, k.email, t.name as task_name, t.display_name
@@ -158,6 +172,8 @@ module.exports = {
   createAssignmentsForDate,
   getAssignmentsForDate,
   markDone,
+  setConfirmToken,
+  getAssignmentByToken,
   getAssignmentById,
   getAssignmentByKidAndTask,
   reassignAssignment,
