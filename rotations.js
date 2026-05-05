@@ -1,4 +1,5 @@
 const db = require('./database');
+const { localDate } = require('./utils');
 
 function getStartDate() {
   return new Date(process.env.START_DATE || '2026-01-01');
@@ -12,7 +13,7 @@ function daysSinceStart(date) {
   return Math.floor((d - start) / (1000 * 60 * 60 * 24));
 }
 
-function getKidForTurn(taskId, forDate = new Date().toISOString().slice(0, 10)) {
+function getKidForTurn(taskId, forDate = localDate()) {
   const task = db.prepare('SELECT * FROM tasks WHERE id = ?').get(taskId);
   if (!task) return null;
 
@@ -25,7 +26,7 @@ function getKidForTurn(taskId, forDate = new Date().toISOString().slice(0, 10)) 
   return db.prepare('SELECT * FROM kids WHERE id = ?').get(kidId);
 }
 
-function getNextKidForTurn(taskId, forDate = new Date().toISOString().slice(0, 10)) {
+function getNextKidForTurn(taskId, forDate = localDate()) {
   const task = db.prepare('SELECT * FROM tasks WHERE id = ?').get(taskId);
   if (!task) return null;
 
@@ -57,7 +58,7 @@ function createMakeup(taskId, kidId) {
   db.prepare('INSERT INTO makeup_assignments (task_id, kid_id) VALUES (?, ?)').run(taskId, kidId);
 }
 
-function createAssignmentsForDate(date = new Date().toISOString().slice(0, 10)) {
+function createAssignmentsForDate(date = localDate()) {
   const tasks = db.prepare('SELECT * FROM tasks WHERE enabled = 1').all();
   const insert = db.prepare('INSERT OR IGNORE INTO assignments (date, task_id, kid_id) VALUES (?, ?, ?)');
 
@@ -80,7 +81,7 @@ function createAssignmentsForDate(date = new Date().toISOString().slice(0, 10)) 
   }
 }
 
-function getAssignmentsForDate(date = new Date().toISOString().slice(0, 10)) {
+function getAssignmentsForDate(date = localDate()) {
   return db.prepare(`
     SELECT a.*, k.name as kid_name, k.platform, k.chat_id, k.email, t.name as task_name, t.display_name
     FROM assignments a

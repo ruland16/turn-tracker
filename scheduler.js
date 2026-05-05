@@ -3,10 +3,11 @@ const { createAssignmentsForDate, getAssignmentsForDate, getKidForTurn } = requi
 const { sendNotification: sendTelegram } = require('./telegram-bot');
 const { sendNotification: sendGoogleChat } = require('./google-chat-bot');
 const { sendNotification: sendEmail } = require('./email-notifier');
+const { localDate } = require('./utils');
 
 function scheduleDailyNotifications() {
   cron.schedule('0 8 * * *', async () => {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = localDate();
     console.log(`[${new Date().toISOString()}] Running daily assignments for ${today}`);
 
     createAssignmentsForDate(today);
@@ -28,14 +29,15 @@ function scheduleDailyNotifications() {
 
     console.log(`[${new Date().toISOString()}] Daily notifications sent.`);
   }, {
-    timezone: 'UTC'
+    timezone: process.env.TIMEZONE || 'UTC',
   });
 
-  console.log('Daily scheduler started: notifications will send every day at 08:00 UTC');
+  const tz = process.env.TIMEZONE || 'UTC';
+  console.log(`Daily scheduler started: notifications will send every day at 08:00 ${tz}`);
 }
 
 function runNow() {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localDate();
   createAssignmentsForDate(today);
   const assignments = getAssignmentsForDate(today);
   return assignments;

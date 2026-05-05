@@ -4,6 +4,7 @@ const path = require('path');
 const db = require('./database');
 const { scheduleDailyNotifications, runNow } = require('./scheduler');
 const { getAssignmentsForDate, markDone, getAssignmentByToken, createAssignmentsForDate, toggleTaskEnabled, reassignAssignment, skipAssignment, getTasks } = require('./rotations');
+const { localDate } = require('./utils');
 const { handleWebhook } = require('./google-chat-bot');
 require('./telegram-bot');
 
@@ -22,7 +23,7 @@ function authMiddleware(req, res, next) {
 }
 
 app.get('/api/today', authMiddleware, (req, res) => {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localDate();
   createAssignmentsForDate(today);
   const assignments = getAssignmentsForDate(today);
   res.json({ date: today, assignments });
@@ -74,7 +75,7 @@ app.post('/api/assignments/:id/skip', authMiddleware, (req, res) => {
 });
 
 app.post('/api/seed-test', authMiddleware, (req, res) => {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localDate();
   createAssignmentsForDate(today);
   const assignments = getAssignmentsForDate(today);
   res.json({ date: today, assignments });
@@ -84,7 +85,7 @@ app.post('/api/send-now', authMiddleware, async (req, res) => {
   const { sendNotification: sendTelegram } = require('./telegram-bot');
   const { sendNotification: sendGoogleChat } = require('./google-chat-bot');
   const { sendNotification: sendEmail } = require('./email-notifier');
-  const today = new Date().toISOString().slice(0, 10);
+  const today = localDate();
   const assignments = getAssignmentsForDate(today);
 
   for (const a of assignments) {
