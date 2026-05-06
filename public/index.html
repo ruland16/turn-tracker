@@ -526,6 +526,32 @@
     }
   }
 
+  /* Filter bar */
+  .filter-bar {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+
+  .filter-bar select {
+    padding: 8px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    font-size: 0.875rem;
+    background: var(--surface);
+    color: var(--text);
+    cursor: pointer;
+    transition: var(--transition);
+  }
+
+  .filter-bar select:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(79,70,229,0.1);
+  }
+
   /* History table */
   .history-wrap {
     background: var(--surface);
@@ -648,6 +674,20 @@
       <div class="section-title">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
         Last 7 Days
+      </div>
+      <div class="filter-bar">
+        <select id="filterTask" onchange="applyHistoryFilter()">
+          <option value="">All tasks</option>
+        </select>
+        <select id="filterKid" onchange="applyHistoryFilter()">
+          <option value="">All kids</option>
+        </select>
+        <select id="filterStatus" onchange="applyHistoryFilter()">
+          <option value="">All statuses</option>
+          <option value="pending">Pending</option>
+          <option value="done">Done</option>
+        </select>
+        <button class="btn btn-ghost btn-sm" onclick="clearHistoryFilters()">Clear</button>
       </div>
       <div class="history-wrap">
         <table class="history-table">
@@ -782,18 +822,9 @@ async function loadToday() {
             <span class="t-name">${a.kid_name || '—'}</span>
           </div>`).join('');
 
-    const tbody = document.getElementById('historyBody');
-    tbody.innerHTML = history.map(h => {
-      const statusClass = h.status === 'done' ? 'badge-done' : 'badge-pending';
-      const doneAt = h.completed_at ? new Date(h.completed_at).toLocaleString() : '-';
-      return `<tr>
-        <td>${h.date}</td>
-        <td>${h.display_name}</td>
-        <td>${h.kid_name}</td>
-        <td><span class="badge ${statusClass}">${h.status}</span></td>
-        <td>${doneAt}</td>
-      </tr>`;
-    }).join('');
+    window._historyData = history;
+    populateHistoryFilters(history);
+    renderHistory(history);
 
     document.getElementById('dashboard').classList.remove('hidden');
   } catch (e) {
@@ -892,6 +923,62 @@ async function skip(assignmentId) {
     alert(data.error || 'Failed');
   }
   loadToday();
+}
+
+function populateHistoryFilters(data) {
+  const tasks = [...new Set(data.map(h => h.display_name))].sort();
+  const kids = [...new Set(data.map(h => h.kid_name))].sort();
+
+  const taskSel = document.getElementById('filterTask');
+  const kidSel = document.getElementById('filterKid');
+  const currentTask = taskSel.value;
+  const currentKid = kidSel.value;
+
+  taskSel.innerHTML = '<option value="">All tasks</option>' + tasks.map(t => `<option value="${t}">${t}</option>`).join('');
+  kidSel.innerHTML = '<option value="">All kids</option>' + kids.map(k => `<option value="${k}">${k}</option>`).join('');
+
+  taskSel.value = currentTask;
+  kidSel.value = currentKid;
+}
+
+function renderHistory(data) {
+  const task = document.getElementById('filterTask').value;
+  const kid = document.getElementById('filterKid').value;
+  const status = document.getElementById('filterStatus').value;
+
+  const filtered = data.filter(h =>
+    (!task || h.display_name === task) &&
+    (!kid || h.kid_name === kid) &&
+    (!status || h.status === status)
+  );
+
+  const tbody = document.getElementById('historyBody');
+  if (filtered.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-secondary);padding:32px;">No results</td></tr>';
+    return;
+  }
+  tbody.innerHTML = filtered.map(h => {
+    const statusClass = h.status === 'done' ? 'badge-done' : 'badge-pending';
+    const doneAt = h.completed_at ? new Date(h.completed_at.replace(' ', 'T') + 'Z').toLocaleString() : '-';
+    return `<tr>
+      <td>${h.date}</td>
+      <td>${h.display_name}</td>
+      <td>${h.kid_name}</td>
+      <td><span class="badge ${statusClass}">${h.status}</span></td>
+      <td>${doneAt}</td>
+    </tr>`;
+  }).join('');
+}
+
+function applyHistoryFilter() {
+  renderHistory(window._historyData || []);
+}
+
+function clearHistoryFilters() {
+  document.getElementById('filterTask').value = '';
+  document.getElementById('filterKid').value = '';
+  document.getElementById('filterStatus').value = '';
+  renderHistory(window._historyData || []);
 }
 
 async function sendNow() {
