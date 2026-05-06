@@ -451,6 +451,47 @@
     border-left: 3px solid var(--warning);
   }
 
+  /* Tomorrow strip */
+  .tomorrow-strip {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .tomorrow-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: var(--transition);
+  }
+
+  .tomorrow-item:hover {
+    box-shadow: var(--shadow-md);
+  }
+
+  .tomorrow-item .t-task {
+    font-size: 0.8125rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+  }
+
+  .tomorrow-item .t-sep {
+    color: var(--border);
+    font-size: 1rem;
+  }
+
+  .tomorrow-item .t-name {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text);
+  }
+
   /* History table */
   .history-wrap {
     background: var(--surface);
@@ -561,6 +602,15 @@
 
     <div class="section">
       <div class="section-title">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        Tomorrow
+      </div>
+      <div class="date-label" id="tomorrowDate"></div>
+      <div class="tomorrow-strip" id="tomorrowStrip"></div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
         Last 7 Days
       </div>
@@ -618,17 +668,19 @@ async function loadToday() {
   if (!token) { alert('Please enter the auth token'); return; }
 
   try {
-    const [todayRes, histRes, tasksRes, kidsRes] = await Promise.all([
+    const [todayRes, histRes, tasksRes, kidsRes, tomorrowRes] = await Promise.all([
       fetch('/api/today?token=' + encodeURIComponent(token)),
       fetch('/api/history?days=7&token=' + encodeURIComponent(token)),
       fetch('/api/tasks?token=' + encodeURIComponent(token)),
-      fetch('/api/kids?token=' + encodeURIComponent(token))
+      fetch('/api/kids?token=' + encodeURIComponent(token)),
+      fetch('/api/tomorrow?token=' + encodeURIComponent(token))
     ]);
 
     const today = await todayRes.json();
     const history = await histRes.json();
     const tasks = await tasksRes.json();
     const kids = await kidsRes.json();
+    const tomorrow = await tomorrowRes.json();
     const kidMap = Object.fromEntries(kids.map(k => [k.id, k.name]));
 
     if (today.error) { alert(today.error); return; }
@@ -636,7 +688,16 @@ async function loadToday() {
     saveToken(token);
     renderTasks(tasks);
 
-    document.getElementById('todayDate').textContent = 'Today — ' + new Date(today.date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    window._todayDateStr = today.date;
+    function refreshTodayLabel() {
+      const datePart = new Date(window._todayDateStr + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+      const timePart = new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+      document.getElementById('todayDate').textContent = 'Today — ' + datePart + ' · ' + timePart;
+    }
+    refreshTodayLabel();
+    if (!window._todayClockInterval) {
+      window._todayClockInterval = setInterval(refreshTodayLabel, 30000);
+    }
     const grid = document.getElementById('todayGrid');
     grid.innerHTML = '';
 
@@ -674,6 +735,17 @@ async function loadToday() {
       `;
       grid.appendChild(div);
     }
+
+    document.getElementById('tomorrowDate').textContent = new Date(tomorrow.date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    const strip = document.getElementById('tomorrowStrip');
+    strip.innerHTML = tomorrow.assignments.length === 0
+      ? '<div style="color:var(--text-secondary);font-size:0.875rem;">No tasks enabled for tomorrow.</div>'
+      : tomorrow.assignments.map(a => `
+          <div class="tomorrow-item">
+            <span class="t-task">${a.display_name}</span>
+            <span class="t-sep">→</span>
+            <span class="t-name">${a.kid_name || '—'}</span>
+          </div>`).join('');
 
     const tbody = document.getElementById('historyBody');
     tbody.innerHTML = history.map(h => {

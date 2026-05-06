@@ -3,7 +3,7 @@ const express = require('express');
 const path = require('path');
 const db = require('./database');
 const { scheduleDailyNotifications, runNow } = require('./scheduler');
-const { getAssignmentsForDate, markDone, getAssignmentByToken, createAssignmentsForDate, toggleTaskEnabled, reassignAssignment, skipAssignment, getTasks } = require('./rotations');
+const { getAssignmentsForDate, markDone, getAssignmentByToken, createAssignmentsForDate, toggleTaskEnabled, reassignAssignment, skipAssignment, getTasks, getKidForTurn } = require('./rotations');
 const { localDate } = require('./utils');
 const { handleWebhook } = require('./google-chat-bot');
 require('./telegram-bot');
@@ -27,6 +27,20 @@ app.get('/api/today', authMiddleware, (req, res) => {
   createAssignmentsForDate(today);
   const assignments = getAssignmentsForDate(today);
   res.json({ date: today, assignments });
+});
+
+app.get('/api/tomorrow', authMiddleware, (req, res) => {
+  const tz = process.env.TIMEZONE || 'UTC';
+  const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: tz });
+  const d = new Date(todayStr + 'T12:00:00');
+  d.setDate(d.getDate() + 1);
+  const tomorrowStr = d.toLocaleDateString('en-CA');
+  const tasks = getTasks().filter(t => t.enabled === 1);
+  const assignments = tasks.map(task => {
+    const kid = getKidForTurn(task.id, tomorrowStr);
+    return { display_name: task.display_name, kid_name: kid ? kid.name : null };
+  });
+  res.json({ date: tomorrowStr, assignments });
 });
 
 app.get('/api/history', authMiddleware, (req, res) => {
