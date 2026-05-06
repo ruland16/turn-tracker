@@ -78,4 +78,25 @@ async function sendNotification(kid, assignment) {
   }
 }
 
-module.exports = { bot, sendNotification };
+async function sendReminder(kid, assignment) {
+  if (!kid.chat_id) return;
+
+  const text = `⏰ *Reminder*, ${kid.name}! You haven't confirmed *${assignment.display_name}* yet. Tap the button once it's done!`;
+  const keyboard = {
+    inline_keyboard: [[
+      { text: `✅ Done with ${assignment.display_name}`, callback_data: `done:${assignment.id}` }
+    ]]
+  };
+
+  try {
+    await bot.sendMessage(kid.chat_id, text, {
+      parse_mode: 'Markdown',
+      reply_markup: JSON.stringify(keyboard)
+    });
+    console.log(`Telegram reminder sent to ${kid.name}`);
+  } catch (err) {
+    console.error(`Failed to send Telegram reminder to ${kid.name}:`, err.message);
+  }
+}
+
+module.exports = { bot, sendNotification, sendReminder };
