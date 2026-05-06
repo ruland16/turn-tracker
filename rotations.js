@@ -143,11 +143,7 @@ function skipAssignment(assignmentId) {
 
   reassignAssignment(assignmentId, nextKid.id);
 
-  if (isTwoKidTask) {
-    createMakeup(assignment.task_id, assignment.kid_id);
-  }
-
-  return { success: true, newKid: nextKid, makeup: isTwoKidTask };
+  return { success: true, newKid: nextKid, makeup: false };
 }
 
 function toggleTaskEnabled(taskId) {
@@ -170,6 +166,7 @@ function getMakeupCount(taskId, kidId) {
 module.exports = {
   getKidForTurn,
   getNextKidForTurn,
+  getPendingMakeup,
   createAssignmentsForDate,
   getAssignmentsForDate,
   markDone,

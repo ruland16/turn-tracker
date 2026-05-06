@@ -830,7 +830,7 @@ function showSkipPanel(assignmentId, taskId, currentKidName, kidMap) {
         </select>
         <button class="btn btn-primary btn-sm" style="margin-right:4px;" onclick="reassign(${assignmentId}, ${taskId})">Confirm</button>
         <button class="btn btn-danger btn-sm" onclick="skip(${assignmentId})">Skip Only</button>
-        <div class="skip-note">${isTwoKid ? currentKidName + ' will make up this turn next time (does it twice).' : currentKidName + ' simply skips this turn. Rotation continues normally.'}</div>
+        <div class="skip-note">${currentKidName} simply skips this turn. Rotation continues normally.</div>
       `;
       panel.classList.remove('hidden');
     });

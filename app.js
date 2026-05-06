@@ -3,7 +3,7 @@ const express = require('express');
 const path = require('path');
 const db = require('./database');
 const { scheduleDailyNotifications, runNow } = require('./scheduler');
-const { getAssignmentsForDate, markDone, getAssignmentByToken, createAssignmentsForDate, toggleTaskEnabled, reassignAssignment, skipAssignment, getTasks, getKidForTurn } = require('./rotations');
+const { getAssignmentsForDate, markDone, getAssignmentByToken, createAssignmentsForDate, toggleTaskEnabled, reassignAssignment, skipAssignment, getTasks, getKidForTurn, getPendingMakeup } = require('./rotations');
 const { localDate } = require('./utils');
 const { handleWebhook } = require('./google-chat-bot');
 require('./telegram-bot');
@@ -37,7 +37,13 @@ app.get('/api/tomorrow', authMiddleware, (req, res) => {
   const tomorrowStr = d.toLocaleDateString('en-CA');
   const tasks = getTasks().filter(t => t.enabled === 1);
   const assignments = tasks.map(task => {
-    const kid = getKidForTurn(task.id, tomorrowStr);
+    const kidIds = JSON.parse(task.kid_ids);
+    let kid = null;
+    if (kidIds.length === 2) {
+      const makeup = getPendingMakeup(task.id);
+      if (makeup) kid = db.prepare('SELECT * FROM kids WHERE id = ?').get(makeup.kid_id);
+    }
+    if (!kid) kid = getKidForTurn(task.id, tomorrowStr);
     return { display_name: task.display_name, kid_name: kid ? kid.name : null };
   });
   res.json({ date: tomorrowStr, assignments });
