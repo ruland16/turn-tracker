@@ -17,30 +17,59 @@ bot.onText(/\/start/, (msg) => {
   bot.sendMessage(chatId, `Hi ${name}! I'll send you chore reminders. Make sure your parent links this chat to your name in the dashboard.`);
 });
 
-bot.on('callback_query', async (query) => {
-  const chatId = query.message.chat.id;
-  const data = query.data;
+// Acknowledge a callback without letting a failure bubble up as an
+// unhandled rejection (which crashes Node 22). If the callback query has
+// already expired (e.g. update delivered late after a polling backoff),
+// answerCallbackQuery throws "query is too old" — we just log and move on.
+async function ack(query, text) {
+  try {
+    await bot.answerCallbackQuery(query.id, text ? { text } : undefined);
+  } catch (err) {
+    console.warn('answerCallbackQuery failed:', err.message);
+  }
+}
 
-  if (data.startsWith('done:')) {
+bot.on('callback_query', async (query) => {
+  try {
+    const data = query.data || '';
+    if (!data.startsWith('done:')) {
+      await ack(query);
+      return;
+    }
+
     const assignmentId = parseInt(data.split(':')[1], 10);
     const assignment = getAssignmentById(assignmentId);
 
     if (!assignment) {
-      bot.answerCallbackQuery(query.id, { text: 'Assignment not found.' });
+      await ack(query, 'Assignment not found.');
       return;
     }
 
     if (assignment.status === 'done') {
-      bot.answerCallbackQuery(query.id, { text: 'Already marked done!' });
-      return;
+      await ack(query, 'Already marked done!');
+    } else {
+      markDone(assignmentId);
+      await ack(query, 'Great job! Marked as done.');
     }
 
-    markDone(assignmentId);
-    bot.answerCallbackQuery(query.id, { text: 'Great job! Marked as done.' });
-    bot.editMessageText(
-      query.message.text + '\n\n✅ Done',
-      { chat_id: chatId, message_id: query.message.message_id }
-    );
+    // Update the original message so the kid sees confirmation even if the
+    // popup/spinner already timed out on their device. Skip if the message is
+    // too old to be included in the callback (>48h) or can't be edited.
+    if (query.message) {
+      try {
+        await bot.editMessageText(
+          query.message.text + '\n\n✅ Done',
+          { chat_id: query.message.chat.id, message_id: query.message.message_id }
+        );
+      } catch (err) {
+        if (!/message is not modified/i.test(err.message)) {
+          console.warn('editMessageText failed:', err.message);
+        }
+      }
+    }
+  } catch (err) {
+    console.error('callback_query handler error:', err.message);
+    await ack(query, 'Something went wrong — please try again.');
   }
 });
 
