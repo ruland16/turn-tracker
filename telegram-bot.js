@@ -11,10 +11,19 @@ if (!token) {
 
 const bot = new TelegramBot(token, { polling: true });
 
-bot.onText(/\/start/, (msg) => {
+bot.onText(/\/start/, async (msg) => {
   const chatId = msg.chat.id;
   const name = msg.chat.first_name || msg.chat.username || '';
-  bot.sendMessage(chatId, `Hi ${name}! I'll send you chore reminders. Make sure your parent links this chat to your name in the dashboard.`);
+  // Log so a parent can grab the chat_id from the server logs to link this kid.
+  console.log(`[Telegram] /start from ${name} (@${msg.chat.username || '-'}) chat_id=${chatId}`);
+  try {
+    await bot.sendMessage(chatId,
+      `Hi ${name}! I'll send you chore reminders.\n\n` +
+      `Your Telegram ID is: ${chatId}\n\n` +
+      `Send this ID to your parent so they can link this chat to your name.`);
+  } catch (err) {
+    console.error('Failed to send /start reply:', err.message);
+  }
 });
 
 // Acknowledge a callback without letting a failure bubble up as an
