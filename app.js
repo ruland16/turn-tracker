@@ -12,7 +12,7 @@ const app = express();
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-const DASHBOARD_TOKEN = process.env.DASHBOARD_AUTH_TOKEN || 'secret';
+const DASHBOARD_TOKEN = process.env.DASHBOARD_AUTH_TOKEN || '0226';
 
 function authMiddleware(req, res, next) {
   const token = req.headers['x-auth-token'] || req.query.token;
